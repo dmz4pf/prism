@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet } from 'lucide-react';
+import { Wallet, Loader2 } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import {
@@ -15,7 +15,7 @@ import { useSmartWallet } from '@/hooks/wallet';
 
 export default function WalletPage() {
   const { isConnected } = useAccount();
-  const { smartWallet, isConnected: hasSmartWallet } = useSmartWallet();
+  const { smartWallet, isConnected: hasSmartWallet, isInitializing } = useSmartWallet();
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
@@ -51,6 +51,18 @@ export default function WalletPage() {
             <ConnectButton />
           </div>
         </motion.div>
+      </div>
+    );
+  }
+
+  // Show loading while wallet is initializing
+  if (isInitializing) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center px-4">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+          <p className="text-secondary-400">Loading wallet...</p>
+        </div>
       </div>
     );
   }

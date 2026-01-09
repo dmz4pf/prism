@@ -35,12 +35,8 @@ export function Sidebar() {
     }
   }, [pathname, closeMobileSidebar, isLandingPage]);
 
-  if (isLandingPage) {
-    return null;
-  }
-
   // =============================================================================
-  // SEARCH FILTERING
+  // SEARCH FILTERING (must be before early return to maintain hooks order)
   // =============================================================================
 
   const filteredGroups = useMemo(() => {
@@ -67,6 +63,11 @@ export function Sidebar() {
       }))
       .filter((group) => group.items.length > 0); // Remove empty groups
   }, [searchQuery]);
+
+  // Early return for landing page (after all hooks)
+  if (isLandingPage) {
+    return null;
+  }
 
   // =============================================================================
   // ANIMATION VARIANTS

@@ -12,6 +12,7 @@ import { Toaster } from 'sonner';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Sidebar } from '@/components/layout/sidebar';
+import { DotGridBackground } from '@/components/backgrounds';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -56,7 +57,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} font-body antialiased bg-background text-white min-h-screen`}
+        className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} font-body antialiased text-white min-h-screen`}
       >
         <ThemeProvider>
           <MotionProvider>
@@ -64,7 +65,10 @@ export default function RootLayout({
               <SidebarProvider>
                 <SettingsProvider>
                   <ToastProvider>
-                    <div className="flex min-h-screen">
+                    {/* Animated Dot Grid Background */}
+                    <DotGridBackground />
+
+                    <div className="flex min-h-screen relative z-0">
                     {/* Sidebar - conditionally rendered inside component */}
                     <Sidebar />
 

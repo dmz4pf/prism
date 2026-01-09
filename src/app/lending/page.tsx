@@ -11,7 +11,6 @@ import {
   ArrowDownLeft,
   Shield,
   BarChart3,
-  Wallet,
   ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -261,50 +260,6 @@ export default function LendingPage() {
         )}
       </motion.div>
 
-      {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
-      >
-        <Link href="/lending/markets">
-          <Card className="p-6 hover:border-blue-500/50 transition-all cursor-pointer group">
-            <BarChart3 className="h-8 w-8 text-blue-400 mb-3 group-hover:scale-110 transition-transform" />
-            <h3 className="text-lg font-semibold text-white mb-2">
-              Explore Markets
-            </h3>
-            <p className="text-sm text-gray-400">
-              Browse and compare lending markets across all protocols
-            </p>
-          </Card>
-        </Link>
-
-        <Link href="/lending/positions">
-          <Card className="p-6 hover:border-blue-500/50 transition-all cursor-pointer group">
-            <Wallet className="h-8 w-8 text-green-400 mb-3 group-hover:scale-110 transition-transform" />
-            <h3 className="text-lg font-semibold text-white mb-2">
-              Your Positions
-            </h3>
-            <p className="text-sm text-gray-400">
-              View and manage all your lending and borrowing positions
-            </p>
-          </Card>
-        </Link>
-
-        <Link href="/activity?filter=lending">
-          <Card className="p-6 hover:border-blue-500/50 transition-all cursor-pointer group">
-            <TrendingUp className="h-8 w-8 text-cyan-400 mb-3 group-hover:scale-110 transition-transform" />
-            <h3 className="text-lg font-semibold text-white mb-2">
-              Activity
-            </h3>
-            <p className="text-sm text-gray-400">
-              Track your lending transaction history and performance
-            </p>
-          </Card>
-        </Link>
-      </motion.div>
-
       {/* Lending APY History Chart */}
       <motion.section
         initial={{ opacity: 0, y: 20 }}
@@ -318,34 +273,6 @@ export default function LendingPage() {
         />
       </motion.section>
 
-      {/* Educational Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <Card className="p-8 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-              <Shield className="h-6 w-6 text-blue-400" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-white mb-2">
-                New to DeFi Lending?
-              </h3>
-              <p className="text-gray-300 mb-4">
-                Learn how to safely earn yield on your assets and borrow against
-                your collateral with our comprehensive guides.
-              </p>
-              <div className="flex gap-3">
-                <Button variant="outline">How to Supply</Button>
-                <Button variant="outline">Understanding Health Factors</Button>
-                <Button variant="outline">Risk Management</Button>
-              </div>
-            </div>
-          </div>
-        </Card>
-      </motion.div>
     </div>
   );
 }

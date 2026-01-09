@@ -4,11 +4,89 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
-import { Menu, ExternalLink } from 'lucide-react';
+import { Menu, ExternalLink, ChevronDown, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { useIsMobile } from '@/hooks/use-media-query';
+
+// Custom Wallet Button Component
+function CustomWalletButton() {
+  return (
+    <ConnectButton.Custom>
+      {({
+        account,
+        chain,
+        openAccountModal,
+        openChainModal,
+        openConnectModal,
+        mounted,
+      }) => {
+        const ready = mounted;
+        const connected = ready && account && chain;
+
+        return (
+          <div
+            {...(!ready && {
+              'aria-hidden': true,
+              style: {
+                opacity: 0,
+                pointerEvents: 'none',
+                userSelect: 'none',
+              },
+            })}
+          >
+            {(() => {
+              if (!connected) {
+                return (
+                  <Button onClick={openConnectModal}>
+                    Connect Wallet
+                  </Button>
+                );
+              }
+
+              if (chain.unsupported) {
+                return (
+                  <Button onClick={openChainModal} variant="destructive">
+                    Wrong Network
+                  </Button>
+                );
+              }
+
+              return (
+                <div className="flex items-center gap-2">
+                  {/* Chain Button */}
+                  <button
+                    onClick={openChainModal}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary-800 border border-secondary-700 hover:bg-secondary-700 transition-colors"
+                  >
+                    {chain.hasIcon && chain.iconUrl && (
+                      <img
+                        alt={chain.name ?? 'Chain'}
+                        src={chain.iconUrl}
+                        className="w-5 h-5 rounded-full"
+                      />
+                    )}
+                  </button>
+
+                  {/* Account Button */}
+                  <button
+                    onClick={openAccountModal}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium transition-colors"
+                  >
+                    <Wallet className="w-4 h-4" />
+                    <span>{account.displayName}</span>
+                    <ChevronDown className="w-4 h-4 opacity-70" />
+                  </button>
+                </div>
+              );
+            })()}
+          </div>
+        );
+      }}
+    </ConnectButton.Custom>
+  );
+}
 
 export function Header() {
   const { isConnected } = useAccount();
@@ -32,15 +110,8 @@ export function Header() {
             <span className="font-heading text-xl font-bold text-white">PRISM</span>
           </Link>
 
-          {/* Connect Button */}
-          <ConnectButton
-            showBalance={false}
-            chainStatus="icon"
-            accountStatus={{
-              smallScreen: 'avatar',
-              largeScreen: 'full',
-            }}
-          />
+          {/* Custom Wallet Button */}
+          <CustomWalletButton />
         </div>
       </header>
     );
@@ -78,25 +149,8 @@ export function Header() {
             <ExternalLink className="h-3.5 w-3.5" />
           </Link>
 
-          {/* Connect Button / Account */}
-          {isConnected ? (
-            <ConnectButton
-              showBalance={false}
-              chainStatus="icon"
-              accountStatus={{
-                smallScreen: 'avatar',
-                largeScreen: 'full',
-              }}
-            />
-          ) : (
-            <ConnectButton.Custom>
-              {({ openConnectModal }) => (
-                <Button onClick={openConnectModal} size="sm" className="rounded-full px-5">
-                  Get Started
-                </Button>
-              )}
-            </ConnectButton.Custom>
-          )}
+          {/* Custom Wallet Button */}
+          <CustomWalletButton />
         </div>
       </div>
     </header>

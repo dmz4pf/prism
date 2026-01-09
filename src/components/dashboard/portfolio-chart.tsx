@@ -14,7 +14,7 @@
 
 'use client';
 
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -242,35 +242,95 @@ function GlowingActiveDot({ cx, cy, stroke }: ActiveDotProps) {
 }
 
 // =============================================================================
-// ANIMATED LINE WRAPPER
+// ANIMATED CHART WRAPPER - State Machine Implementation
 // =============================================================================
+
+type AnimationState = 'idle' | 'pending' | 'animating' | 'complete';
 
 interface AnimatedChartWrapperProps {
   children: React.ReactNode;
   animate: boolean;
+  height: number;
   className?: string;
 }
 
-function AnimatedChartWrapper({ children, animate, className }: AnimatedChartWrapperProps) {
-  const [isRevealed, setIsRevealed] = useState(!animate);
+function AnimatedChartWrapper({
+  children,
+  animate,
+  height,
+  className
+}: AnimatedChartWrapperProps) {
+  // State machine for animation control
+  const [state, setState] = useState<AnimationState>(() =>
+    animate ? 'pending' : 'idle'
+  );
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
+  // Handle animate prop changes (e.g., reduced motion toggle)
   useEffect(() => {
-    if (animate) {
-      // Small delay to ensure the component is mounted
-      const timer = setTimeout(() => setIsRevealed(true), 100);
-      return () => clearTimeout(timer);
+    if (!animate) {
+      // Animation disabled - immediately show content
+      setState('idle');
+    } else if (state === 'idle') {
+      // Animation re-enabled - restart sequence
+      setState('pending');
     }
+    // Note: Don't include 'state' in deps to avoid loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animate]);
+
+  // State machine transitions with timers
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+
+    if (state === 'pending') {
+      // Brief delay ensures DOM is ready before animation
+      timer = setTimeout(() => setState('animating'), 50);
+    } else if (state === 'animating') {
+      // CRITICAL: Fallback ensures chart is ALWAYS visible
+      // Even if CSS animation fails, this guarantees visibility
+      timer = setTimeout(() => setState('complete'), 2500);
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [state]);
+
+  // Listen for CSS animation completion
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper || state !== 'animating') return;
+
+    const handleAnimationEnd = (e: AnimationEvent) => {
+      // Only handle our animation, not child animations
+      if (e.target === wrapper) {
+        setState('complete');
+      }
+    };
+
+    wrapper.addEventListener('animationend', handleAnimationEnd);
+    return () => wrapper.removeEventListener('animationend', handleAnimationEnd);
+  }, [state]);
+
+  // Build class names based on current state
+  const wrapperClass = cn(
+    'chart-wrapper-base',
+    {
+      'chart-wrapper-hidden': state === 'pending',
+      'chart-wrapper-animating': state === 'animating',
+      'chart-wrapper-visible': state === 'idle' || state === 'complete',
+    },
+    className
+  );
 
   return (
     <div
-      className={cn(
-        'chart-line-wrapper',
-        isRevealed && animate && 'animate',
-        className
-      )}
+      ref={wrapperRef}
+      className={wrapperClass}
       style={{
-        '--chart-line-duration': '1.2s',
+        height,
+        '--chart-animation-duration': '1.2s',
       } as React.CSSProperties}
     >
       {children}
@@ -448,8 +508,8 @@ export function PortfolioChart({
       )}
 
       {/* Chart */}
-      <AnimatedChartWrapper animate={shouldAnimate} className="bg-secondary-800/30 rounded-lg p-4">
-        <ResponsiveContainer width="100%" height={height}>
+      <AnimatedChartWrapper animate={shouldAnimate} height={height} className="bg-secondary-800/30 rounded-lg p-4">
+        <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={data}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}

@@ -30,11 +30,13 @@
   html {
     @apply scroll-smooth;
     color-scheme: dark;
+    background-color: #0A0A0F; /* Fallback for dot grid background */
   }
 
   body {
-    @apply bg-background text-white font-body antialiased;
+    @apply text-white font-body antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    background: transparent; /* Allow dot grid to show through */
   }
 
   /* Headings use Space Grotesk */
@@ -578,40 +580,29 @@ a,
 }
 
 /* =============================================================================
-   PORTFOLIO CHART ANIMATIONS
+   PORTFOLIO CHART ANIMATION SYSTEM - State Machine Based
+   Guarantees chart visibility with graceful left-to-right reveal animation
    ============================================================================= */
 
-/* Line Drawing Animation - Clip path reveals from left to right */
-@keyframes chart-line-draw {
-  0% {
+/* Clip-path reveal animation - left to right */
+@keyframes chart-clip-reveal {
+  from {
     clip-path: inset(0 100% 0 0);
   }
-  100% {
+  to {
     clip-path: inset(0 0 0 0);
   }
 }
 
-/* Fade in from below */
+/* Fade in from below (for legend, tooltips) */
 @keyframes chart-fade-up {
-  0% {
+  from {
     opacity: 0;
     transform: translateY(10px);
   }
-  100% {
+  to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-/* Subtle pulse for active elements */
-@keyframes chart-pulse-subtle {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.05);
   }
 }
 
@@ -625,44 +616,33 @@ a,
   }
 }
 
-/* Chart container animation wrapper */
-.chart-animate-container {
-  animation: chart-fade-up 0.4s ease-out forwards;
+/* Base wrapper - always applied */
+.chart-wrapper-base {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius, 0.5rem);
 }
 
-/* Line wrapper with clip-path animation */
-.chart-line-wrapper {
-  will-change: clip-path;
+/* State: pending - hidden before animation starts */
+.chart-wrapper-hidden {
+  opacity: 0;
+}
+
+/* State: animating - clip-path reveal in progress */
+.chart-wrapper-animating {
+  opacity: 1;
   clip-path: inset(0 100% 0 0);
-}
-
-.chart-line-wrapper.animate {
-  animation: chart-line-draw var(--chart-line-duration, 1.2s)
+  animation: chart-clip-reveal var(--chart-animation-duration, 1.2s)
              cubic-bezier(0.4, 0, 0.2, 1)
-             var(--chart-line-delay, 0s)
              forwards;
 }
 
-/* Individual line delays */
-.chart-line-staking { --chart-line-delay: 0.3s; }
-.chart-line-lending { --chart-line-delay: 0.5s; }
-.chart-line-stable { --chart-line-delay: 0.7s; }
-.chart-line-strategies { --chart-line-delay: 0.9s; }
-
-/* Legend animation */
-.chart-legend-item {
-  opacity: 0;
-  transform: translateY(8px);
+/* State: visible (idle or complete) - fully shown */
+.chart-wrapper-visible {
+  opacity: 1;
+  clip-path: none;
 }
-
-.chart-legend-item.animate {
-  animation: chart-fade-up 0.3s ease-out forwards;
-}
-
-.chart-legend-item:nth-child(1) { animation-delay: 1.4s; }
-.chart-legend-item:nth-child(2) { animation-delay: 1.5s; }
-.chart-legend-item:nth-child(3) { animation-delay: 1.6s; }
-.chart-legend-item:nth-child(4) { animation-delay: 1.7s; }
 
 /* Active dot glow effect */
 .chart-active-dot {
@@ -682,28 +662,167 @@ a,
 }
 
 /* Focus states for line on hover */
-.chart-line-focus .recharts-line-curve {
-  transition: opacity 0.3s ease, filter 0.3s ease;
-}
-
 .chart-container:hover .recharts-line:not(:hover) .recharts-line-curve {
   opacity: 0.4;
 }
 
-/* Reduced motion support */
+/* =============================================================================
+   REDUCED MOTION - Accessibility Support
+   ============================================================================= */
 @media (prefers-reduced-motion: reduce) {
-  .chart-animate-container,
-  .chart-line-wrapper.animate,
-  .chart-legend-item.animate,
+  .chart-wrapper-hidden,
+  .chart-wrapper-animating {
+    animation: none !important;
+    clip-path: none !important;
+    opacity: 1 !important;
+  }
+
   .chart-active-dot,
   .chart-tooltip-animate {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
-    clip-path: none !important;
   }
 
   .recharts-line .recharts-line-curve {
     transition: none !important;
   }
+}
+
+/* =============================================================================
+   ANIMATED DOT GRID BACKGROUND - HYBRID IMPLEMENTATION
+   CSS Layer: Static dot grid (always visible, GPU-accelerated)
+   Canvas Layer: Animated scan lines with dot-to-line transformation
+   ============================================================================= */
+
+/* Container for the entire background system */
+.prism-bg-system {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* CSS Layer - Static dot grid pattern */
+.prism-dot-grid {
+  position: absolute;
+  inset: 0;
+  background-color: rgb(var(--background-rgb, 10, 10, 15));
+  background-image: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.35) 1px,
+    transparent 1px
+  );
+  background-size: 40px 40px;
+  background-position: 20px 20px;
+}
+
+/* Subtle vignette overlay for depth */
+.prism-dot-grid::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    transparent 50%,
+    rgba(10, 10, 15, 0.4) 100%
+  );
+  pointer-events: none;
+}
+
+/* Canvas layer sits on top of CSS dots */
+.prism-scan-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+/* Fallback scan lines for when Canvas is disabled */
+.prism-fallback-scan {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.prism-fallback-scan .scan-h {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent 47%,
+    rgba(59, 130, 246, 0.02) 48%,
+    rgba(59, 130, 246, 0.06) 50%,
+    rgba(59, 130, 246, 0.02) 52%,
+    transparent 53%,
+    transparent 100%
+  );
+  animation: prism-scan-down 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.prism-fallback-scan .scan-v {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 47%,
+    rgba(6, 182, 212, 0.02) 48%,
+    rgba(6, 182, 212, 0.06) 50%,
+    rgba(6, 182, 212, 0.02) 52%,
+    transparent 53%,
+    transparent 100%
+  );
+  animation: prism-scan-right 17s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: -7s;
+}
+
+/* Keyframes for fallback CSS scan lines */
+@keyframes prism-scan-down {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes prism-scan-right {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Note: Reduced motion check removed - animation always enabled */
+
+/* Performance optimizations */
+.prism-bg-system,
+.prism-dot-grid,
+.prism-scan-canvas,
+.prism-fallback-scan .scan-h,
+.prism-fallback-scan .scan-v {
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
